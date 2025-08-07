@@ -1,14 +1,15 @@
-entrypoint = "index.js"
-modules = ["nodejs-22"]
-hidden = [".config", "package-lock.json"]
+language = "nodejs"
+entrypoint = "backend/index.js"
+modules = ["nodejs-20"]
 
-[gitHubImport]
-requiredFiles = [".replit", "replit.nix", "package.json", "package-lock.json"]
+# يخبر Replit بتشغيل هذا الأمر عند الضغط على زر Run
+[run]
+command = ["node", "backend/index.js"]
 
-[nix]
-channel = "stable-24_11"
-
+# هذا يمنع Replit من محاولة تشغيل الخادم بشكل آلي إضافي
 [deployment]
-run = ["node", "index.js"]
-deploymentTarget = "autoscale"
-ignorePorts = false
+run = ["node", "backend/index.js"]
+
+[[ports]]
+localPort = 3000
+externalPort = 80

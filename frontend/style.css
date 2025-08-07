@@ -1,0 +1,977 @@
+/* Custom Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap');
+
+:root {
+    --message-font-size: 18px; /* Default value, updated by JS */
+}
+
+/* Body & Background Styles */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Tajawal", "Cairo", sans-serif;
+    background: #000000; /* Full black background */
+    transition: background 0.3s ease-in-out;
+    font-size: 1.125rem; /* Base font size for UI elements (18px) */
+}
+
+.dark body {
+    background: #000000; /* Full black background */
+}
+
+/* Glass Effect */
+.glass-effect {
+    backdrop-filter: blur(20px);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dark .glass-effect {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Chat Container */
+.chat-container {
+    background: transparent;
+    backdrop-filter: none;
+}
+
+.dark .chat-container {
+    background: transparent;
+}
+
+/* Chat Bubbles and Messages */
+.chat-bubble {
+    animation: slideUp 0.3s ease-out;
+    position: relative;
+    padding: 1rem;
+    font-size: var(--message-font-size); /* Controlled by settings slider */
+    font-weight: 400; /* Consistent font weight */
+    line-height: 1.5; /* Consistent line height */
+    width: fit-content; /* فقاعات تلتف حول النص */
+    max-width: 85%; /* حد أقصى للعرض 85% من عرض الشاشة */
+    word-wrap: break-word; /* كسر الكلمات الطويلة */
+}
+
+.message-content {
+    overflow-wrap: break-word;
+}
+
+.message-user {
+    background: #444654; /* Dark gray for user messages */
+    color: white;
+    /* زوايا دائرية محسنة مثل ChatGPT - غير متماثلة */
+    border-radius: 1.125rem 1.125rem 1.125rem 0.25rem;
+    margin-right: auto; /* محاذاة رسائل المستخدم على اليسار */
+    margin-left: 0;
+}
+
+.message-assistant {
+    background: transparent; /* Transparent background for assistant messages */
+    color: #f9fafb; /* Light text color */
+    border: none;
+    /* زوايا دائرية محسنة مثل ChatGPT - غير متماثلة */
+    border-radius: 1.125rem 1.125rem 0.25rem 1.125rem;
+    margin-left: 0; /* عرض كامل للرسائل */
+    margin-right: 0;
+    max-width: 100% !important; /* عرض كامل للشاشة */
+    width: 100%; /* استخدام العرض الكامل */
+}
+
+/* File Card Styles - New Addition */
+.file-card-bubble {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0.5rem 0;
+    width: fit-content;
+    max-width: 280px;
+}
+
+.file-card {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    background: #2E2F33;
+    border: 1px solid #4A4B50;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 280px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.file-card:hover {
+    background: #353639;
+    border-color: #5A5B60;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.file-icon-container {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 12px;
+    flex-shrink: 0;
+}
+
+.file-icon-container i {
+    font-size: 22px;
+    color: white;
+}
+
+/* File type specific colors */
+.file-icon-js { background: #f7df1e; }
+.file-icon-js i { color: #000; }
+
+.file-icon-html { background: #e34f26; }
+.file-icon-css { background: #1572b6; }
+.file-icon-php { background: #777bb4; }
+.file-icon-python { background: #3776ab; }
+.file-icon-java { background: #ed8b00; }
+.file-icon-cpp { background: #00599c; }
+.file-icon-csharp { background: #239120; }
+.file-icon-ruby { background: #cc342d; }
+.file-icon-json { background: #000000; }
+.file-icon-xml { background: #ff6600; }
+.file-icon-csv { background: #0f7b0f; }
+.file-icon-yaml { background: #cb171e; }
+.file-icon-sql { background: #336791; }
+.file-icon-txt { background: #4a90e2; }
+.file-icon-md { background: #083fa1; }
+.file-icon-log { background: #6f42c1; }
+.file-icon-config { background: #6c757d; }
+.file-icon-default { background: #4a90e2; }
+
+.file-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.file-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: #ffffff;
+    margin: 0 0 2px 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.file-meta {
+    font-size: 12px;
+    color: #9ca3af;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Streaming Animation Styles */
+.streaming-message {
+    position: relative;
+}
+
+.streaming-cursor {
+    display: inline-block;
+    width: 2px;
+    height: 1.2em;
+    background-color: #10a37f;
+    margin-left: 2px;
+    animation: blink 1s infinite;
+    vertical-align: baseline;
+}
+
+@keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+
+.streaming-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: #9ca3af;
+    font-size: 14px;
+    margin-top: 8px;
+}
+
+.streaming-dots {
+    display: flex;
+    gap: 2px;
+}
+
+.streaming-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background-color: #10a37f;
+    animation: streamingPulse 1.4s infinite ease-in-out;
+}
+
+.streaming-dot:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.streaming-dot:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes streamingPulse {
+    0%, 60%, 100% {
+        transform: scale(0.8);
+        opacity: 0.5;
+    }
+    30% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Code Block Styling - ChatGPT Style */
+pre {
+    position: relative;
+    background-color: #0D1117; /* Dark background similar to ChatGPT */
+    border-radius: 8px;
+    padding: 0; /* No padding as header and code will have their own */
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    overflow: hidden; /* Hide overflow to maintain rounded corners */
+    border: 1px solid #21262d; /* Subtle border */
+    display: flex;
+    flex-direction: column; /* Stack header and code vertically */
+}
+
+/* Code Header - ChatGPT Style */
+.code-header-new {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #161B22; /* Darker header background */
+    padding: 0.75rem; /* 12px padding */
+    border-bottom: 1px solid #21262d;
+    color: #d1d5db; /* Light gray text */
+    font-size: 0.875rem;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    flex-shrink: 0; /* Prevent header from shrinking */
+    border-radius: 8px 8px 0 0; /* Rounded top corners only */
+}
+
+.language-label {
+    font-weight: 500;
+    color: #d1d5db;
+}
+
+.copy-button-new {
+    background: none;
+    border: none;
+    color: #d1d5db;
+    cursor: pointer;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.copy-button-new:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+}
+
+.copy-button-new:active {
+    transform: scale(0.95);
+}
+
+/* Code content styling */
+pre code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: #e6edf3; /* Brighter code text */
+    display: block;
+    padding: 1rem; /* 16px padding for code content */
+    margin: 0;
+    background: transparent;
+    overflow-x: auto;
+    flex: 1; /* Take remaining space */
+    border-radius: 0 0 8px 8px; /* Rounded bottom corners only */
+}
+
+/* Enhanced syntax highlighting colors for better visibility */
+pre code .hljs-keyword {
+    color: #ff7b72; /* Red for keywords */
+}
+
+pre code .hljs-string {
+    color: #a5d6ff; /* Light blue for strings */
+}
+
+pre code .hljs-number {
+    color: #79c0ff; /* Blue for numbers */
+}
+
+pre code .hljs-comment {
+    color: #8b949e; /* Gray for comments */
+    font-style: italic;
+}
+
+pre code .hljs-function {
+    color: #d2a8ff; /* Purple for functions */
+}
+
+pre code .hljs-variable {
+    color: #ffa657; /* Orange for variables */
+}
+
+pre code .hljs-built_in {
+    color: #79c0ff; /* Blue for built-ins */
+}
+
+pre code .hljs-title {
+    color: #d2a8ff; /* Purple for titles */
+}
+
+/* Legacy code header for backward compatibility */
+.code-header {
+    display: none; /* Hide old header style */
+}
+
+/* Message Actions and Tooltips */
+.message-actions {
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    display: flex;
+    gap: 4px;
+}
+
+.chat-bubble:hover .message-actions {
+    opacity: 1;
+}
+
+.tooltip {
+    position: relative;
+}
+
+.tooltip:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease-out;
+}
+
+/* Typing Indicator (from your JS code) */
+.typing-indicator {
+    display: inline-block;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Zeus Logo */
+.zeus-logo {
+    background-image: url("https://pfst.cf2.poecdn.net/base/image/e866fe6201b4f734a00254f62783f9a54506786325f2bd47fcba21c97943e597?w=413&h=478");
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+/* Sidebar & Transitions */
+.sidebar-transition {
+    transition: transform 0.3s ease-in-out;
+}
+
+/* Animations (from your Tailwind config) */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+    .sidebar-width { width: 85vw; max-width: 320px; }
+    .welcome-grid { grid-template-columns: 1fr; }
+    .header-title { font-size: 1.125rem; }
+    .header-subtitle { font-size: 0.75rem; }
+    .chat-input { font-size: 16px; }
+    .settings-modal { margin: 1rem; max-width: calc(100vw - 2rem); }
+    .message-actions {
+        opacity: 1;
+        position: relative;
+        top: auto;
+        left: auto;
+        margin-top: 8px;
+        justify-content: flex-end;
+    }
+
+    .file-card {
+        max-width: 250px;
+    }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(16, 163, 127, 0.5);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(16, 163, 127, 0.7);
+}
+
+/* Additions for Settings Modal Scrolling */
+.settings-scrollable-content {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 15px;
+}
+
+.settings-scrollable-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.settings-scrollable-content::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+.settings-scrollable-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+
+.settings-scrollable-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+/* أنماط إضافية لنافذة إدارة النماذج المخصصة */
+.custom-models-modal {
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.custom-model-card {
+    transition: all 0.2s ease-in-out;
+}
+
+.custom-model-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.custom-model-card .form-input {
+    transition: border-color 0.2s ease-in-out;
+}
+
+.custom-model-card .form-input:focus {
+    border-color: #10a37f;
+    box-shadow: 0 0 0 3px rgba(16, 163, 127, 0.1);
+}
+
+/* أنماط للأزرار المخصصة */
+.btn-custom {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+    border: none;
+    text-decoration: none;
+}
+
+.btn-custom:hover {
+    transform: translateY(-1px);
+}
+
+.btn-custom.btn-primary {
+    background-color: #10a37f;
+    color: white;
+}
+
+.btn-custom.btn-primary:hover {
+    background-color: #0d8f6b;
+}
+
+.btn-custom.btn-secondary {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #f9fafb;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-custom.btn-secondary:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.btn-custom.btn-danger {
+    background-color: #ef4444;
+    color: white;
+}
+
+.btn-custom.btn-danger:hover {
+    background-color: #dc2626;
+}
+
+/* أنماط للحقول المخصصة */
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: #374151;
+}
+
+.dark .form-label {
+    color: #d1d5db;
+}
+
+.form-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    background-color: rgba(255, 255, 255, 0.8);
+    color: #111827;
+    font-size: 1rem;
+    backdrop-filter: blur(4px);
+}
+
+.dark .form-input {
+    border-color: #4b5563;
+    background-color: rgba(31, 41, 55, 0.8);
+    color: #f9fafb;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #10a37f;
+    box-shadow: 0 0 0 3px rgba(16, 163, 127, 0.1);
+}
+
+.form-textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* أنماط للإشعارات */
+.notification {
+    position: fixed;
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    color: white;
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    animation: slideDown 0.3s ease-out;
+}
+
+.notification.success {
+    background-color: #10b981;
+}
+
+.notification.error {
+    background-color: #ef4444;
+}
+
+.notification.info {
+    background-color: #3b82f6;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+/* أنماط للأيقونات */
+.icon {
+    width: 1rem;
+    height: 1rem;
+    display: inline-block;
+}
+
+.icon-sm {
+    width: 0.875rem;
+    height: 0.875rem;
+}
+
+.icon-lg {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+/* أنماط للحالات الفارغة */
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #6b7280;
+}
+
+.dark .empty-state {
+    color: #9ca3af;
+}
+
+.empty-state .icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.empty-state h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+    font-size: 0.875rem;
+    opacity: 0.8;
+}
+
+/* أنماط للبطاقات */
+.card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    transition: all 0.2s ease-in-out;
+}
+
+.card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* أنماط للتبديل */
+.toggle {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+}
+
+.toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #6b7280;
+    transition: 0.3s;
+    border-radius: 24px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+}
+
+.toggle input:checked + .toggle-slider {
+    background-color: #10a37f;
+}
+
+.toggle input:checked + .toggle-slider:before {
+    transform: translateX(20px);
+}
+
+/* أنماط للتحميل */
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #ffffff;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* أنماط للشارات */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border-radius: 9999px;
+    background-color: rgba(16, 163, 127, 0.1);
+    color: #10a37f;
+    border: 1px solid rgba(16, 163, 127, 0.2);
+}
+
+.badge.badge-success {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+    border-color: rgba(16, 185, 129, 0.2);
+}
+
+.badge.badge-error {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.2);
+}
+
+.badge.badge-warning {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+    border-color: rgba(245, 158, 11, 0.2);
+}
+
+/* أنماط للقوائم المنسدلة */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    right: 0;
+    background-color: rgba(31, 41, 55, 0.95);
+    min-width: 200px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    overflow: hidden;
+}
+
+.dropdown:hover .dropdown-content {
+    display: block;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.dropdown-item {
+    color: #f9fafb;
+    padding: 0.75rem 1rem;
+    text-decoration: none;
+    display: block;
+    transition: background-color 0.2s ease;
+    font-size: 0.875rem;
+}
+
+.dropdown-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.dropdown-item i {
+    margin-left: 0.5rem;
+    width: 16px;
+}
+
+/* أنماط الإدخال المحسنة */
+.input-group {
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.input-group .form-input {
+    padding-right: 2.5rem;
+}
+
+.input-group .input-icon {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+    pointer-events: none;
+}
+
+.input-group .input-action {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 0.25rem;
+    transition: color 0.2s ease;
+}
+
+.input-group .input-action:hover {
+    color: #6b7280;
+}
+
+/* أنماط للرسائل التوضيحية */
+.help-text {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    margin-top: 0.25rem;
+}
+
+.error-text {
+    font-size: 0.75rem;
+    color: #ef4444;
+    margin-top: 0.25rem;
+}
+
+.success-text {
+    font-size: 0.75rem;
+    color: #10b981;
+    margin-top: 0.25rem;
+}
+
+/* أنماط للتقدم */
+.progress-bar {
+    width: 100%;
+    height: 4px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background-color: #10a37f;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+/* تحسينات الاستجابة */
+@media (max-width: 640px) {
+    .settings-modal {
+        width: 95vw;
+        max-width: none;
+        margin: 0.5rem;
+    }
+
+    .custom-models-modal {
+        width: 95vw;
+        max-width: none;
+        margin: 0.5rem;
+    }
+
+    .file-card {
+        max-width: calc(100vw - 4rem);
+    }
+
+    .chat-bubble {
+        max-width: 95%;
+    }
+}
+
+/* Drag and Drop Styles */
+.dragging {
+    opacity: 0.4;
+    cursor: grabbing;
+}
+
+.drop-indicator {
+    height: 2px;
+    background-color: #10a37f; /* zeus-accent */
+    width: 100%;
+    margin: 2px 0;
+    border-radius: 1px;
+    animation: fadeIn 0.2s ease-out;
+    list-style-type: none; /* Ensure it doesn't get a list bullet */
+}
+
+/* ✨ أنماط جديدة لعرض المرفقات مثل ChatGPT */
+
+/* حاوية المرفقات التي ستكون فوق النص */
+.attachments-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem; /* 8px */
+    margin-bottom: 0.75rem; /* 12px */
+    /* محاذاة لليمين في واجهة RTL */
+    justify-content: flex-end; 
+}
+
+/* تصميم الصورة المصغرة المرفقة */
+.attachment-thumbnail {
+    width: 80px;
+    height: 80px;
+    border-radius: 0.75rem; /* 12px */
+    object-fit: cover; /* يضمن أن الصورة تملأ المساحة بدون تشويه */
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background-color: #2d2d2d; /* لون خلفية احتياطي أثناء التحميل */
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.attachment-thumbnail:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* تصميم بطاقة الملفات النصية (للحفاظ على شكلها) */
+.attachment-file-card {
+    max-width: 200px;
+    transform: scale(0.9); /* تصغيرها قليلاً لتناسب التصميم الجديد */
+}

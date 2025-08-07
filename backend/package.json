@@ -10,6 +10,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@types/node": "^22.13.11"
+    "@google/generative-ai": "^0.24.1",
+    "@types/node": "^22.13.11",
+    "dotenv": "^17.2.1"
   }
 }
