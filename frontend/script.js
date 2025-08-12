@@ -1,21 +1,30 @@
-// API Endpoint for the backend
-const API_ENDPOINT = '/api/chat';
+// ✨ الرابط الأساسي والثابت للخادم الخلفي على Railway
+const API_BASE_URL = 'https://chatzeus-production.up.railway.app';
 
-// Global state
+// ===============================================
+// المتغيرات العامة
+// ===============================================
+let currentUser = null;
 let currentChatId = null;
 let chats = {};
-let settings = {
-    provider: 'gemini',
-    model: 'gemini-1.5-flash',
-    temperature: 0.7,
-    geminiApiKeys: [],
-    openrouterApiKeys: [],
-    customProviders: [], // قائمة المزودين المخصصين مع مفاتيح API متعددة لكل مزود
-    customModels: [], // النماذج المخصصة الجديدة
-    customPrompt: '',
-    apiKeyRetryStrategy: 'sequential',
-    fontSize: 18 // Default font size in pixels
+
+// ✨ 1. الإعدادات الافتراضية الثابتة (لا تتغير أبدًا) ✨
+const defaultSettings = {
+  provider: 'gemini',
+  model: 'gemini-1.5-flash',
+  temperature: 0.7,
+  geminiApiKeys: [],
+  openrouterApiKeys: [],
+  customProviders: [],
+  customModels: [],
+  customPrompt: '',
+  apiKeyRetryStrategy: 'sequential',
+  fontSize: 18,
+  theme: 'blue' // 👈 ثيم الواجهة: blue | black | light
 };
+
+// ✨ 2. الإعدادات الحالية التي ستتغير (تبدأ كنسخة من الافتراضية) ✨
+let settings = { ...defaultSettings };
 
 // Provider configurations
 const providers = {
@@ -89,8 +98,18 @@ let streamingState = {
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', function() {
-    initializeDarkMode();
-    loadData();
+    // ✨ معالجة التوكن عند العودة من صفحة جوجل ✨
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+
+    if (token) {
+        console.log("Token found in URL, saving to localStorage.");
+        localStorage.setItem('authToken', token);
+        // تنظيف الرابط من التوكن لأسباب أمنية
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    initializeTheme();
     updateCustomProviders(); // تحديث المزودين المخصصين
     updateSendButton();
     initializeEventListeners();
@@ -102,7 +121,92 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('messagesContainer').classList.remove('hidden');
         displayMessages();
     }
-});
+
+    // ✨ التحقق من حالة المستخدم ✨
+    checkUserStatus();
+// ===== ثبات الشاشة على iOS عند فتح الكيبورد =====
+try {
+  const root = document.documentElement;
+  const mainShell = document.querySelector('main') || document.body;
+  function applyViewportFix() {
+    if (window.visualViewport) {
+      const vh = window.visualViewport.height;
+      root.style.setProperty('--vhpx', `${vh}px`);
+      // إن أردت استخدامه في CSS: height: var(--vhpx);
+    }
+  }
+  applyViewportFix();
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', applyViewportFix);
+    window.visualViewport.addEventListener('scroll', applyViewportFix);
+  }
+
+const input = document.getElementById('messageInput');
+const area  = document.getElementById('messagesArea');
+
+function scrollToBottom(force = false) {
+  if (!area) return;
+  const nearBottom = (area.scrollHeight - area.scrollTop - area.clientHeight) < 60;
+  if (force || nearBottom) {
+    area.scrollTop = area.scrollHeight;
+  }
+}
+
+if (input && area) {
+  // عند التركيز: انزل لآخر الرسائل، وثبّت الشاشة (لا تُحرّك window)
+  input.addEventListener('focus', () => {
+    setTimeout(() => scrollToBottom(true), 50);
+  });
+
+  // أثناء الكتابة أو تمدد الـ textarea
+  input.addEventListener('input', () => {
+    // إعادة ضبط ارتفاع الـ textarea لديك موجودة؛ بعدها ننزل لأسفل
+    setTimeout(() => scrollToBottom(), 0);
+  });
+}
+
+// تحدّث ارتفاع الشاشة ديناميكياً مع الكيبورد (موجود لديك، نضيف عليه تمرير للأسفل)
+function applyViewportFix() {
+  if (window.visualViewport) {
+    const vh = window.visualViewport.height;
+    document.documentElement.style.setProperty('--vhpx', `${vh}px`);
+    scrollToBottom(); // حافظ على الرؤية أسفل عند تغيّر الارتفاع
+  }
+}
+applyViewportFix();
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', applyViewportFix);
+  window.visualViewport.addEventListener('scroll', applyViewportFix);
+}
+} catch (_) {}
+
+// ===== خلفية زيوس =====
+const bgCanvas = document.getElementById('bgCanvas');
+const bgSelect = document.getElementById('bgStyleSelect');
+
+function applyBg(style) {
+  if (!bgCanvas) return;
+  bgCanvas.classList.remove('bg-calm','bg-storm','flash');
+  bgCanvas.classList.add(style === 'storm' ? 'bg-storm' : 'bg-calm');
+  localStorage.setItem('bgStyle', style);
+}
+
+// تحميل الخيار المحفوظ
+applyBg(localStorage.getItem('bgStyle') || 'calm');
+
+// من الإعدادات
+if (bgSelect) {
+  bgSelect.value = localStorage.getItem('bgStyle') || 'calm';
+  bgSelect.addEventListener('change', e => applyBg(e.target.value));
+}
+
+// ومضات برق خفيفة عند وصول رسالة جديدة من المساعد
+function zeusFlash() {
+  if (!bgCanvas || !bgCanvas.classList.contains('bg-storm')) return;
+  bgCanvas.classList.add('flash');
+  setTimeout(() => bgCanvas.classList.remove('flash'), 1800);
+}
+});  // نهاية DOMContentLoaded
 
 // تحديث المزودين المخصصين في كائن providers
 function updateCustomProviders() {
@@ -268,12 +372,12 @@ function renderCustomProviderApiKeys(providerId) {
         keyDiv.className = 'flex items-center space-x-3 space-x-reverse';
         keyDiv.innerHTML = `
             <div class="relative flex-1">
-                <input type="password" value="${apiKey.key}" 
+                <input type="password" value="${apiKey.key}"
                     onchange="updateCustomProviderApiKeyValue('${providerId}', ${index}, this.value)"
                     id="customProviderApiKeyInput-${providerId}-${index}"
                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white text-base pl-10 backdrop-blur-sm"
                     placeholder="أدخل مفتاح API">
-                <button type="button" onclick="toggleCustomProviderApiKeyVisibility('${providerId}', ${index})" 
+                <button type="button" onclick="toggleCustomProviderApiKeyVisibility('${providerId}', ${index})"
                     class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
                     <i id="customProviderApiKeyToggleIcon-${providerId}-${index}" class="fas fa-eye"></i>
                 </button>
@@ -282,7 +386,7 @@ function renderCustomProviderApiKeys(providerId) {
                 <span class="status-indicator ${apiKey.status === 'active' ? 'bg-green-500' : 'bg-red-500'} w-3 h-3 rounded-full"></span>
                 <span class="text-xs text-gray-500 dark:text-gray-400">${apiKey.status === 'active' ? 'نشط' : 'معطل'}</span>
             </div>
-            <button onclick="removeCustomProviderApiKey('${providerId}', ${index})" 
+            <button onclick="removeCustomProviderApiKey('${providerId}', ${index})"
                 class="p-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors">
                 <i class="fas fa-trash text-sm"></i>
             </button>
@@ -306,7 +410,6 @@ function addCustomProviderApiKey() {
         key: '',
         status: 'active'
     });
-
     renderCustomProviderApiKeys(provider);
 }
 
@@ -369,18 +472,18 @@ function renderCustomProviders() {
         providerCard.innerHTML = `
             <div class="flex items-start justify-between mb-3">
                 <div class="flex-1">
-                    <input type="text" value="${provider.name}" 
+                    <input type="text" value="${provider.name}"
                         onchange="updateCustomProviderName(${index}, this.value)"
                         class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white text-base backdrop-blur-sm"
                         placeholder="اسم المزود">
                 </div>
-                <button onclick="removeCustomProvider(${index})" 
+                <button onclick="removeCustomProvider(${index})"
                     class="p-2 ml-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors">
                     <i class="fas fa-trash"></i>
                 </button>
             </div>
             <div class="mb-3">
-                <input type="text" value="${provider.baseUrl || ''}" 
+                <input type="text" value="${provider.baseUrl || ''}"
                     onchange="updateCustomProviderBaseUrl(${index}, this.value)"
                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white text-base backdrop-blur-sm"
                     placeholder="رابط API الأساسي">
@@ -388,7 +491,7 @@ function renderCustomProviders() {
             <div class="space-y-2">
                 <div class="flex items-center justify-between">
                     <span class="text-sm font-medium text-gray-700 dark:text-gray-300">النماذج:</span>
-                    <button onclick="addCustomProviderModel(${index})" 
+                    <button onclick="addCustomProviderModel(${index})"
                         class="text-xs text-zeus-accent hover:text-zeus-accent-hover transition-colors">
                         <i class="fas fa-plus ml-1"></i>إضافة نموذج
                     </button>
@@ -396,15 +499,15 @@ function renderCustomProviders() {
                 <div id="customProviderModels-${index}" class="space-y-2">
                     ${provider.models ? provider.models.map((model, modelIndex) => `
                         <div class="flex items-center space-x-2 space-x-reverse">
-                            <input type="text" value="${model.id}" 
+                            <input type="text" value="${model.id}"
                                 onchange="updateCustomProviderModelId(${index}, ${modelIndex}, this.value)"
                                 class="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white text-sm"
                                 placeholder="معرف النموذج">
-                            <input type="text" value="${model.name}" 
+                            <input type="text" value="${model.name}"
                                 onchange="updateCustomProviderModelName(${index}, ${modelIndex}, this.value)"
                                 class="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white text-sm"
                                 placeholder="اسم النموذج">
-                            <button onclick="removeCustomProviderModel(${index}, ${modelIndex})" 
+                            <button onclick="removeCustomProviderModel(${index}, ${modelIndex})"
                                 class="p-1 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors">
                                 <i class="fas fa-times text-xs"></i>
                             </button>
@@ -544,20 +647,20 @@ function renderCustomModels() {
                 <div class="flex-1 grid grid-cols-2 gap-3">
                     <div>
                         <label class="form-label">اسم النموذج</label>
-                        <input type="text" value="${model.name}" 
+                        <input type="text" value="${model.name}"
                             onchange="updateCustomModelName(${index}, this.value)"
                             class="form-input"
                             placeholder="اسم النموذج">
                     </div>
                     <div>
                         <label class="form-label">معرف النموذج</label>
-                        <input type="text" value="${model.id}" 
+                        <input type="text" value="${model.id}"
                             onchange="updateCustomModelId(${index}, this.value)"
                             class="form-input"
                             placeholder="معرف النموذج">
                     </div>
                 </div>
-                <button onclick="removeCustomModel(${index})" 
+                <button onclick="removeCustomModel(${index})"
                     class="p-2 ml-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors">
                     <i class="fas fa-trash"></i>
                 </button>
@@ -575,7 +678,7 @@ function renderCustomModels() {
                 </div>
                 <div>
                     <label class="form-label">درجة الحرارة الافتراضية</label>
-                    <input type="number" min="0" max="1" step="0.1" value="${model.defaultTemperature || 0.7}" 
+                    <input type="number" min="0" max="1" step="0.1" value="${model.defaultTemperature || 0.7}"
                         onchange="updateCustomModelTemperature(${index}, this.value)"
                         class="form-input"
                         placeholder="0.7">
@@ -583,7 +686,7 @@ function renderCustomModels() {
             </div>
             <div>
                 <label class="form-label">وصف النموذج</label>
-                <textarea onchange="updateCustomModelDescription(${index}, this.value)" 
+                <textarea onchange="updateCustomModelDescription(${index}, this.value)"
                     class="form-input form-textarea"
                     placeholder="وصف مختصر للنموذج">${model.description || ''}</textarea>
             </div>
@@ -679,48 +782,68 @@ function createFileCard(file) {
 
 // CRITICAL MODIFICATION: processAttachedFiles now collects metadata and content for API
 async function processAttachedFiles(files) {
+    const token = localStorage.getItem('authToken');
     const fileData = [];
 
     for (const file of files) {
-        // جمع البيانات الوصفية للملف
-        const fileInfo = {
+        // 1) نجمع معلومات أساسية
+        const info = {
             name: file.name,
             size: file.size,
             type: file.type,
-            lastModified: file.lastModified,
-            fileObject: file // Keep reference for actual processing when needed
+            lastModified: file.lastModified
         };
 
-        // تحديد امتدادات الملفات النصية والصور
-        const textExtensions = ['txt', 'js', 'html', 'css', 'json', 'xml', 'md', 'py', 'java', 'cpp', 'c', 'cs', 'php', 'rb', 'sql', 'yaml', 'yml', 'csv', 'log'];
-        const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
-        const extension = file.name.split('.').pop()?.toLowerCase();
+        // 2) نحدد النوع لتمرير المحتوى إلى /api/chat فقط
+        const textExt = ['txt','js','html','css','json','xml','md','py','java','cpp','c','cs','php','rb','sql','yaml','yml','csv','log'];
+        const imgExt  = ['jpg','jpeg','png','gif','webp','bmp'];
+        const ext = (file.name.split('.').pop() || '').toLowerCase();
 
-        // التحقق إذا كان الملف نصيًا
-        if (textExtensions.includes(extension)) {
-            try {
-                const content = await readFileAsText(file);
-                fileInfo.content = content; // تخزين المحتوى للاستخدام في الـ API
-                fileInfo.dataType = 'text'; // ✨ إضافة: تحديد نوع البيانات كنص
-            } catch (error) {
-                console.error('Error reading file:', error);
-                fileInfo.content = `خطأ في قراءة الملف: ${file.name}`;
+        try {
+            if (textExt.includes(ext)) {
+                info.dataType = 'text';
+                info.content  = await readFileAsText(file);
+            } else if (imgExt.includes(ext) || file.type.startsWith('image/')) {
+                info.dataType = 'image';
+                info.mimeType = file.type;
+                info.content  = await readFileAsBase64(file);
+            } else {
+                // أنواع أخرى: نرسلها كما هي للذكاء كنص فارغ فقط
+                info.dataType = 'binary';
             }
-        } 
-        // ✨ إضافة: التحقق إذا كان الملف صورة
-        else if (imageExtensions.includes(extension) || file.type.startsWith('image/')) {
-            try {
-                const content = await readFileAsBase64(file); // استخدام الدالة الجديدة للصور
-                fileInfo.content = content; // تخزين محتوى الصورة كـ Base64
-                fileInfo.dataType = 'image'; // تحديد نوع البيانات كصورة
-                fileInfo.mimeType = file.type; // حفظ نوع MIME (مهم جدًا للـ API)
-            } catch (error) {
-                console.error('Error reading image file:', error);
-                fileInfo.content = `خطأ في قراءة الصورة: ${file.name}`;
-            }
+        } catch (e) {
+            console.error('Error reading file for AI:', e);
         }
 
-        fileData.push(fileInfo);
+        // 3) نرفع النسخة الأصلية إلى الخادم للحفظ الدائم (FormData)
+        try {
+            const form = new FormData();
+            form.append('file', file, file.name);
+
+            const uploadRes = await fetch(`${API_BASE_URL}/api/files`, {
+                method: 'POST',
+                headers: {
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
+                body: form
+            });
+
+            if (!uploadRes.ok) {
+                const errText = await uploadRes.text();
+                throw new Error(`فشل رفع الملف: ${uploadRes.status} - ${errText}`);
+            }
+
+            const uploaded = await uploadRes.json();
+            // المتوقع من الخادم: { fileId, fileUrl, originalName, mimeType, size }
+            info.fileId  = uploaded.fileId || uploaded._id || null;
+            info.fileUrl = uploaded.fileUrl || null;
+
+        } catch (e) {
+            console.error('Upload error:', e);
+            showNotification(`تعذر رفع "${file.name}" للحفظ الدائم`, 'error');
+        }
+
+        fileData.push(info);
     }
 
     return fileData;
@@ -739,12 +862,13 @@ function readFileAsText(file) {
 // دالة جديدة لقراءة الملفات كـ Base64
 function readFileAsBase64(file) {
     return new Promise((resolve, reject) => {
+        // ✨✨✨ التحقق من حجم الملف (5 ميجابايت) ✨✨✨
+        if (file.size > 5 * 1024 * 1024) {
+            return reject(new Error('حجم الملف كبير جدًا. الحد الأقصى هو 5 ميجابايت.'));
+        }
         const reader = new FileReader();
         reader.onloadend = () => {
-            // نزيل الجزء الأول من السلسلة "data:image/jpeg;base64,"
-            const base64String = reader.result
-                .replace('data:', '')
-                .replace(/^.+,/, '');
+            const base64String = reader.result.split(',')[1];
             resolve(base64String);
         };
         reader.onerror = reject;
@@ -843,37 +967,79 @@ function createStreamingMessage(sender = 'assistant') {
     streamingState.streamingElement = document.getElementById(`content-${messageId}`);
     streamingState.currentText = '';
     streamingState.isStreaming = true;
+// ✨ الجديد: ثبت المحادثة التي بدأ فيها البث
+    streamingState.chatId = currentChatId;
+
+// زر الإرسال يتحول فوراً إلى "إيقاف"
+    updateSendButton();
 
     return messageId;
 }
 
 function appendToStreamingMessage(text, isComplete = false) {
-    if (!streamingState.isStreaming || !streamingState.streamingElement) return;
+    if (!streamingState.isStreaming) return;
 
+    // نجمع النص دائمًا
     streamingState.currentText += text;
 
-    // Remove cursor temporarily
+    // إذا لم يكن لدينا عنصر DOM (مثلاً لأننا بدّلنا المحادثة)
+    // ونعود الآن إلى نفس المحادثة التي يجري فيها البث،
+    // نعيد إنشاء الفقاعة وربط العنصر مرة أخرى.
+    if (!streamingState.streamingElement) {
+        const weAreOnTheStreamingChat =
+            currentChatId && streamingState.chatId && currentChatId === streamingState.chatId;
+
+        if (weAreOnTheStreamingChat) {
+            // إعادة إرفاق فقاعة البث في هذه المحادثة
+            const messageId = streamingState.currentMessageId;
+            const messagesArea = document.getElementById('messagesArea');
+
+            // أنشئ غلاف الرسالة يدويًا (نسخة مبسطة من createStreamingMessage بدون إعادة ضبط الحالة)
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-bubble message-assistant streaming-message`;
+            messageDiv.id = `message-${messageId}`;
+            messageDiv.innerHTML = `
+              <div class="message-content" id="content-${messageId}">
+                  <span class="streaming-cursor"></span>
+              </div>
+              <div class="streaming-indicator">
+                  <i class="fas fa-robot text-xs"></i>
+                  <span>يكتب زيوس</span>
+                  <div class="streaming-dots">
+                      <div class="streaming-dot"></div>
+                      <div class="streaming-dot"></div>
+                      <div class="streaming-dot"></div>
+                  </div>
+              </div>
+            `;
+            messagesArea.appendChild(messageDiv);
+            streamingState.streamingElement = document.getElementById(`content-${messageId}`);
+        }
+    }
+
+    // إن لم يتوفر عنصر بعد (لأننا في محادثة أخرى)، نكتفي بتجميع النص ونؤجل العرض
+    if (!streamingState.streamingElement) {
+        if (isComplete) completeStreamingMessage();
+        return;
+    }
+
+    // الآن نحدّث الـ DOM كالمعتاد
     const cursor = streamingState.streamingElement.querySelector('.streaming-cursor');
     if (cursor) cursor.remove();
-
-    // Update content with markdown rendering
     const renderedContent = marked.parse(streamingState.currentText);
     streamingState.streamingElement.innerHTML = renderedContent;
 
-    // Add cursor back if not complete
     if (!isComplete) {
         const newCursor = document.createElement('span');
         newCursor.className = 'streaming-cursor';
         streamingState.streamingElement.appendChild(newCursor);
     }
 
-    // Highlight code blocks
     streamingState.streamingElement.querySelectorAll('pre code').forEach(block => {
         hljs.highlightElement(block);
         addCodeHeader(block.parentElement);
     });
 
-    // Smooth scroll to bottom
     smoothScrollToBottom();
 
     if (isComplete) {
@@ -898,28 +1064,32 @@ function completeStreamingMessage() {
     }
 
     // Save assistant message to chat
-    if (currentChatId && streamingState.currentText) {
-        const now = Date.now();
-        chats[currentChatId].messages.push({
-            role: 'assistant',
-            content: streamingState.currentText,
-            timestamp: now
-        });
-        chats[currentChatId].updatedAt = now;
-        chats[currentChatId].order = now; // Bring chat to top on new message
+// احفظ الرسالة داخل المحادثة التي بدأ فيها البث
+const targetChatId = streamingState.chatId; // 👈 هذا هو الأهم
+if (targetChatId && chats[targetChatId] && streamingState.currentText) {
+    const now = Date.now();
+    chats[targetChatId].messages.push({
+        role: 'assistant',
+        content: streamingState.currentText,
+        timestamp: now
+    });
+    chats[targetChatId].updatedAt = now;
+    chats[targetChatId].order = now;
+}
 
-        // Save data to localStorage
-        saveData();
-    }
+// إعادة ضبط حالة البث
+streamingState.isStreaming = false;
+streamingState.currentMessageId = null;
+streamingState.streamingElement = null;
+streamingState.currentText = '';
+streamingState.streamController = null;
+streamingState.chatId = null;
 
-    // Reset streaming state
-    streamingState.isStreaming = false;
-    streamingState.currentMessageId = null;
-    streamingState.streamingElement = null;
-    streamingState.currentText = '';
-    streamingState.streamController = null;
+// احفظ المحادثة الصحيحة في الخادم (تمرير المعرّف)
+saveCurrentChat(targetChatId);
 
-    scrollToBottom();
+scrollToBottom();
+
 }
 
 function smoothScrollToBottom() {
@@ -930,8 +1100,19 @@ function smoothScrollToBottom() {
     });
 }
 
-// Enhanced message sending with streaming
 async function sendMessage() {
+
+    if (streamingState.isStreaming) { 
+        cancelStreaming('new-send'); 
+        return; 
+    }
+
+    // ⚠️ في حال تغيّر المعرّف بعد حفظ سابق
+    if (currentChatId && !chats[currentChatId]) {
+        const latest = Object.values(chats).sort((a,b)=>(b.order||0)-(a.order||0))[0];
+        currentChatId = latest ? latest._id : null;
+    }
+
     const input = document.getElementById('messageInput');
     const sendButton = document.getElementById('sendButton');
     const fileInput = document.getElementById('fileInput');
@@ -956,6 +1137,16 @@ async function sendMessage() {
             await startNewChat();
         }
 
+        // ✨✨✨ الميزة الجديدة تبدأ هنا ✨✨✨
+        // 1. تحقق إذا كانت هذه هي الرسالة الأولى في المحادثة الحالية
+        if (chats[currentChatId] && chats[currentChatId].messages.length === 0 && message) {
+            // 2. إذا كانت كذلك، قم بتحديث عنوان المحادثة
+            chats[currentChatId].title = message;
+            // 3. قم بتحديث قائمة المحادثات فورًا لإظهار الاسم الجديد
+            displayChatHistory();
+        }
+        // ✨✨✨ الميزة الجديدة تنتهي هنا ✨✨✨
+
         // Process files if any
         let attachments = [];
         if (files.length > 0) {
@@ -964,15 +1155,17 @@ async function sendMessage() {
 
         // Create user message
         const userMessage = {
-            role: 'user',
-            content: message,
-            attachments: attachments.map(file => ({
-                name: file.name,
-                size: file.size,
-                type: file.type
-            })),
-            timestamp: Date.now()
-        };
+    role: 'user',
+    content: message,
+    attachments: attachments.map(file => ({
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        fileId: file.fileId || null,
+        fileUrl: file.fileUrl || null
+    })),
+    timestamp: Date.now()
+};
 
         // Add user message to chat
         chats[currentChatId].messages.push(userMessage);
@@ -1039,30 +1232,24 @@ function displayUserMessage(message) {
 // ----------------------------------------------------------------------------------
 
 async function sendToAIWithStreaming(chatHistory, attachments) {
-    // 1. تجميع البيانات المطلوبة في كائن payload
+    // ✨ الحل النهائي: بناء حمولة (payload) سليمة دائمًا ✨
     const payload = {
         chatHistory: chatHistory,
-        attachments: attachments.map(file => {
-            // نرسل فقط البيانات الضرورية للخادم
-            return {
-                name: file.name,
-                type: file.type,
-                size: file.size,
-                content: file.content, // Base64 for images, text for others
-                dataType: file.dataType,
-                mimeType: file.mimeType
-            };
-        }),
-        settings: {
-            provider: settings.provider,
-            model: settings.model,
-            temperature: settings.temperature,
-            customPrompt: settings.customPrompt,
-            // لا نرسل مفاتيح API، الخادم هو من سيتعامل معها
-        }
+        attachments: attachments.map(file => ({
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            content: file.content,
+            dataType: file.dataType,
+            mimeType: file.mimeType
+        })),
+        // نستخدم كائن الإعدادات "settings" العام بالكامل
+        // هذا يضمن أن كل الخصائص (مثل customProviders) تُرسل دائمًا، حتى لو كانت مصفوفات فارغة
+        // وهذا يمنع حدوث خطأ 'undefined' في الخادم.
+        settings: settings 
     };
 
-    // 2. استدعاء الدالة الجديدة التي تتصل بالخادم
+    // 2. استدعاء الدالة التي تتصل بالخادم
     try {
         await sendRequestToServer(payload);
     } catch (error) {
@@ -1072,43 +1259,66 @@ async function sendToAIWithStreaming(chatHistory, attachments) {
     }
 }
 
-
 async function sendRequestToServer(payload) {
+  try {
+    const token = localStorage.getItem('authToken');
+
+    // 1) إنشاء المتحكّم وربطه بحالة البث
+    const controller = new AbortController();
+    streamingState.streamController = controller;
+
+    // 2) الطلب مع signal للإلغاء الفوري
+    const response = await fetch(`${API_BASE_URL}/api/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Server Error:', response.status, errorText);
+      throw new Error(`خطأ من الخادم: ${response.status} - ${errorText}`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder('utf-8');
+
     try {
-        const response = await fetch(API_ENDPOINT, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(payload)
-        });
+      while (true) {
+        const { done, value } = await reader.read(); // سيُرمى AbortError عند الإلغاء
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        appendToStreamingMessage(chunk);
+      }
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Server Error:', response.status, errorText);
-            throw new Error(`خطأ من الخادم: ${response.status} - ${errorText}`);
-        }
-
-        // معالجة الرد المتدفق
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder('utf-8');
-
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) {
-                break;
-            }
-            const chunk = decoder.decode(value, { stream: true });
-            appendToStreamingMessage(chunk);
-        }
-
-        // إنهاء البث
-        appendToStreamingMessage('', true);
+      // اكتمال طبيعي
+      appendToStreamingMessage('', true);
 
     } catch (error) {
-        console.error('Fetch error:', error);
-        throw error; // إعادة رمي الخطأ ليتم التعامل معه في دالة sendMessage
+      if (error.name === 'AbortError') {
+        // تم الإلغاء: لا نرمي خطأ، أوقفنا البث بالفعل في cancelStreaming()
+        console.debug('Streaming aborted by user.');
+        return;
+      }
+      throw error;
+
+    } finally {
+      // تنظيف المقبض - لا تغيّر isStreaming هنا (تُدار في append/cancel)
+      streamingState.streamController = null;
     }
+
+  } catch (error) {
+    // أخطاء شبكة/خادم
+    console.error('Fetch error:', error);
+    if (error.name !== 'AbortError') {
+      appendToStreamingMessage(`\n\n❌ حدث خطأ أثناء الاتصال بالخادم: ${error.message}`, true);
+    }
+    throw error;
+  }
 }
 
 
@@ -1314,7 +1524,6 @@ async function sendToOpenRouterSimple(messages, attachments) {
         });
     }
 
-    // Convert messages
     messages.forEach(msg => {
         if (msg.role === 'user') {
             let content = msg.content;
@@ -1465,15 +1674,65 @@ function scrollToBottom() {
 }
 
 function updateSendButton() {
-    const input = document.getElementById('messageInput');
-    const sendButton = document.getElementById('sendButton');
-    const fileInput = document.getElementById('fileInput');
+  const input = document.getElementById('messageInput');
+  const sendButton = document.getElementById('sendButton');
+  const fileInput = document.getElementById('fileInput');
 
-    const hasText = input.value.trim().length > 0;
-    const hasFiles = fileInput.files.length > 0;
+  const hasText = input.value.trim().length > 0;
+  const hasFiles = fileInput.files.length > 0;
 
+  if (streamingState.isStreaming) {
+    // أثناء البث: الزر يصبح "إيقاف"
+    sendButton.disabled = false;                       // يجب أن يبقى قابلاً للنقر لإيقاف البث
+    sendButton.onclick = () => cancelStreaming('button');
+    sendButton.innerHTML = '<i class="fas fa-stop"></i>';
+    sendButton.classList.remove('bg-zeus-accent', 'hover:bg-zeus-accent-hover');
+    sendButton.classList.add('bg-red-600', 'hover:bg-red-700');
+  } else {
+    // وضع عادي: الزر يعود "إرسال"
     sendButton.disabled = !hasText && !hasFiles;
+    sendButton.onclick = () => sendMessage();
+    sendButton.innerHTML = '<i class="fas fa-paper-plane"></i>';
+    sendButton.classList.remove('bg-red-600', 'hover:bg-red-700');
+    sendButton.classList.add('bg-zeus-accent', 'hover:bg-zeus-accent-hover');
+  }
 }
+
+// ==== إلغاء البث الحالي ====
+function cancelStreaming(reason = 'user') {
+  if (!streamingState.isStreaming) return;
+
+  try {
+    if (streamingState.streamController) {
+      streamingState.streamController.abort(); // يقطع fetch فوراً
+    }
+  } catch (_) {}
+
+  // إنهاء بصري أنيق مع حفظ ما وصلنا إليه
+  appendToStreamingMessage('\n\n⏹️ تم إيقاف التوليد.', true);
+
+  // تحديث الحالة والزر
+  streamingState.isStreaming = false;
+  streamingState.streamController = null;
+  updateSendButton();
+
+  // إشعار اختياري
+  showNotification('تم إيقاف التوليد', 'info');
+}
+
+// إلغاء عند إغلاق/تحديث الصفحة
+window.addEventListener('beforeunload', () => {
+  if (streamingState.isStreaming && streamingState.streamController) {
+    streamingState.streamController.abort();
+  }
+});
+
+// اختصار لوحة المفاتيح: Escape يوقف البث
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && streamingState.isStreaming) {
+    cancelStreaming('escape');
+  }
+});
 
 // Chat management functions
 async function startNewChat() {
@@ -1481,12 +1740,13 @@ async function startNewChat() {
     currentChatId = chatId;
     const now = Date.now();
     chats[chatId] = {
-        id: chatId,
+        _id: chatId,
         title: 'محادثة جديدة',
         messages: [],
         createdAt: now,
         updatedAt: now,
-        order: now // Used for drag-and-drop reordering
+        order: now,
+        isTemporary: true         // ✨ تمييزها كمحادثة غير محفوظة بعد
     };
 
     document.getElementById('welcomeScreen').classList.remove('hidden');
@@ -1494,7 +1754,6 @@ async function startNewChat() {
     document.getElementById('messagesArea').innerHTML = '';
 
     displayChatHistory();
-    saveData();
 }
 
 // Drag and drop state
@@ -1504,8 +1763,7 @@ function displayChatHistory() {
     const chatHistory = document.getElementById('chatHistory');
     chatHistory.innerHTML = '';
 
-    // Sort by the 'order' property, descending (higher order value = higher on the list)
-    const sortedChats = Object.values(chats).sort((a, b) => b.order - a.order);
+    const sortedChats = Object.values(chats).sort((a, b) => (b.order || 0) - (a.order || 0));
 
     if (sortedChats.length === 0) {
         chatHistory.innerHTML = `
@@ -1519,27 +1777,29 @@ function displayChatHistory() {
     }
 
     sortedChats.forEach(chat => {
-        const chatItem = document.createElement('div');
-        chatItem.className = `p-3 rounded-lg cursor-pointer transition-colors ${chat.id === currentChatId ? 'bg-zeus-accent text-white' : 'hover:bg-white/10 text-gray-300'}`;
+        if (!chat._id) return; 
 
-        // Make item draggable
+        const chatItem = document.createElement('div');
+        chatItem.className = `p-3 rounded-lg cursor-pointer transition-colors ${chat._id === currentChatId ? 'bg-zeus-accent text-white' : 'hover:bg-white/10 text-gray-300'}`;
+
         chatItem.setAttribute('draggable', true);
-        chatItem.setAttribute('data-chat-id', chat.id);
+        chatItem.setAttribute('data-chat-id', chat._id);
 
         const lastMessage = chat.messages[chat.messages.length - 1];
         const preview = lastMessage ? (lastMessage.content.substring(0, 50) + (lastMessage.content.length > 50 ? '...' : '')) : 'محادثة فارغة';
 
+        // نسخة نظيفة تمامًا
         chatItem.innerHTML = `
             <div class="flex items-center justify-between">
-                <div class="flex-1 min-w-0" id="chat-title-container-${chat.id}">
+                <div class="flex-1 min-w-0" id="chat-title-container-${chat._id}">
                     <h4 class="font-medium truncate">${escapeHtml(chat.title)}</h4>
                     <p class="text-sm opacity-70 truncate">${escapeHtml(preview)}</p>
                 </div>
                 <div class="flex items-center ml-2 space-x-1 space-x-reverse">
-                    <button onclick="toggleEditChatTitle('${chat.id}', event)" class="p-1 rounded hover:bg-white/20 text-gray-300 hover:text-white transition-colors" title="تعديل الاسم">
+                    <button onclick="toggleEditChatTitle('${chat._id}', event)" class="p-1 rounded hover:bg-white/20 text-gray-300 hover:text-white transition-colors" title="تعديل الاسم">
                         <i class="fas fa-pen text-xs"></i>
                     </button>
-                    <button onclick="deleteChat('${chat.id}', event)" class="p-1 rounded hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors" title="حذف المحادثة">
+                    <button onclick="deleteChat('${chat._id}', event)" class="p-1 rounded hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors" title="حذف المحادثة">
                         <i class="fas fa-trash text-xs"></i>
                     </button>
                 </div>
@@ -1548,10 +1808,9 @@ function displayChatHistory() {
 
         chatItem.onclick = (e) => {
             if (e.target.closest('button')) return;
-            switchToChat(chat.id);
+            switchToChat(chat._id);
         };
 
-        // Add drag and drop event listeners
         chatItem.addEventListener('dragstart', handleDragStart);
         chatItem.addEventListener('dragenter', handleDragEnter);
         chatItem.addEventListener('dragover', handleDragOver);
@@ -1643,7 +1902,6 @@ function handleDrop(e) {
     }
 
     chats[sourceChatId].order = newOrder;
-    saveData();
 
     // The dragend handler will remove the indicator and dragging class
     // Re-render to show the final correct order
@@ -1658,6 +1916,7 @@ function handleDragEnd(e) {
 function switchToChat(chatId) {
     if (!chats[chatId]) return;
 
+    // 👈 لا نُلغي البث هنا، نسمح له بالعمل في الخلفية
     currentChatId = chatId;
     document.getElementById('welcomeScreen').classList.add('hidden');
     document.getElementById('messagesContainer').classList.remove('hidden');
@@ -1667,19 +1926,137 @@ function switchToChat(chatId) {
     closeSidebar();
 }
 
-function deleteChat(chatId, event) {
-    if (event) event.stopPropagation();
-    if (confirm('هل أنت متأكد من حذف هذه المحادثة؟')) {
-        delete chats[chatId];
+// مساعد بسيط للتحقق من ObjectId
+function isValidObjectId(id) {
+    return typeof id === 'string' && /^[a-f\d]{24}$/i.test(id);
+}
 
-        if (currentChatId === chatId) {
-            currentChatId = null;
-            document.getElementById('welcomeScreen').classList.remove('hidden');
-            document.getElementById('messagesContainer').classList.add('hidden');
+// تنظيف المحادثة قبل الإرسال للخادم
+function sanitizeChatForSave(chat) {
+  const safeMessages = (chat.messages || []).map(m => ({
+    role: m.role,
+    content: typeof m.content === 'string' ? m.content : '',
+    timestamp: m.timestamp || Date.now(),
+    // نحفظ المراجع فقط (بدون content/base64)
+    attachments: (m.attachments || []).map(a => ({
+      name: a.name,
+      type: a.type,
+      size: a.size,
+      fileId: a.fileId || null,
+      fileUrl: a.fileUrl || null
+    }))
+  }));
+
+  return {
+    _id: chat._id,
+    title: chat.title || 'محادثة',
+    messages: safeMessages,
+    createdAt: chat.createdAt || Date.now(),
+    updatedAt: Date.now(),
+    order: chat.order || Date.now()
+  };
+}
+
+async function saveCurrentChat(chatIdParam = currentChatId) {
+    if (!chatIdParam || !chats[chatIdParam]) return;
+
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+
+    try {
+        // ✨ تنظيف قبل الحفظ
+        const payload = sanitizeChatForSave(chats[chatIdParam]);
+
+        const response = await fetch(`${API_BASE_URL}/api/chats`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            // ✨ التقط رسالة الخادم الحقيقية (JSON أو نص)
+            let serverMsg = 'Failed to save chat to the database.';
+            try {
+                const txt = await response.text();
+                serverMsg = txt || serverMsg;
+            } catch (_) {}
+            throw new Error(serverMsg);
         }
 
+        const savedChat = await response.json();
+
+        // خزّن النسخة العائدة من الخادم تحت الـ _id الحقيقي
+        chats[savedChat._id] = { ...savedChat, isTemporary: false };
+
+        // إن كان الـ chatIdParam مؤقّتًا (ليس ObjectId) احذفه
+        const wasTemp = !isValidObjectId(chatIdParam);
+        if (wasTemp && chatIdParam !== savedChat._id) {
+            delete chats[chatIdParam];
+        }
+
+        // تحديث المعرّفات إن كنا على نفس المحادثة/نبثّ فيها
+        if (currentChatId === chatIdParam) currentChatId = savedChat._id;
+        if (streamingState.chatId === chatIdParam) streamingState.chatId = savedChat._id;
+
+        console.log('Chat saved successfully to DB:', savedChat._id);
         displayChatHistory();
-        saveData();
+
+    } catch (error) {
+        console.error('Error saving chat:', error);
+        // ✨ أظهر رسالة الخادم بدل النص العام
+        showNotification(`حدث خطأ أثناء حفظ المحادثة: ${error.message}`, 'error');
+    }
+}
+
+async function deleteChat(chatId, event) {
+    if (event) event.stopPropagation();
+
+    if (!chats[chatId]) return;
+
+    if (confirm('هل أنت متأكد من حذف هذه المحادثة؟')) {
+        const token = localStorage.getItem('authToken');
+
+        // 1) إذا كانت المحادثة مؤقتة محليًا (أو المعرّف ليس ObjectId) نحذفها محليًا فقط
+        const temp = chats[chatId].isTemporary === true || !isValidObjectId(chatId);
+        if (temp || !token) {
+            delete chats[chatId];
+            if (currentChatId === chatId) {
+                currentChatId = null;
+                document.getElementById('welcomeScreen').classList.remove('hidden');
+                document.getElementById('messagesContainer').classList.add('hidden');
+            }
+            displayChatHistory();
+            showNotification('تم حذف المحادثة محليًا.', 'success');
+            return;
+        }
+
+        // 2) محادثة محفوظة فعلًا → احذف من الخادم أولًا
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/chats/${chatId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!response.ok) throw new Error('فشل حذف المحادثة من الخادم.');
+
+            delete chats[chatId];
+
+            if (currentChatId === chatId) {
+                currentChatId = null;
+                document.getElementById('welcomeScreen').classList.remove('hidden');
+                document.getElementById('messagesContainer').classList.add('hidden');
+            }
+
+            displayChatHistory();
+            showNotification('تم حذف المحادثة بنجاح.', 'success');
+
+        } catch (error) {
+            console.error('Error deleting chat:', error);
+            showNotification(error.message, 'error');
+        }
     }
 }
 
@@ -1739,7 +2116,6 @@ function updateChatTitle(chatId, newTitle) {
         chats[chatId].title = newTitle.trim();
         chats[chatId].updatedAt = now;
         chats[chatId].order = now; // Bring to top on edit
-        saveData();
     }
     displayChatHistory();
 }
@@ -1755,6 +2131,50 @@ function displayMessages() {
     });
 
     scrollToBottom();
+
+    // 👇 هنا نضع الكود الجديد من الخطوة 6
+    if (streamingState.isStreaming && streamingState.chatId === currentChatId) {
+        // اربط عنصر العرض مرة أخرى إن لم يكن موجودًا
+        if (!document.getElementById(`message-${streamingState.currentMessageId}`)) {
+            const messageId = streamingState.currentMessageId;
+            const messagesArea = document.getElementById('messagesArea');
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-bubble message-assistant streaming-message`;
+            messageDiv.id = `message-${messageId}`;
+            messageDiv.innerHTML = `
+              <div class="message-content" id="content-${messageId}">
+                  <span class="streaming-cursor"></span>
+              </div>
+              <div class="streaming-indicator">
+                  <i class="fas fa-robot text-xs"></i>
+                  <span>يكتب زيوس</span>
+                  <div class="streaming-dots">
+                      <div class="streaming-dot"></div>
+                      <div class="streaming-dot"></div>
+                      <div class="streaming-dot"></div>
+                  </div>
+              </div>
+            `;
+            messagesArea.appendChild(messageDiv);
+            streamingState.streamingElement = document.getElementById(`content-${messageId}`);
+
+            // أعرض ما جمعناه حتى الآن
+            const rendered = marked.parse(streamingState.currentText || '');
+            streamingState.streamingElement.innerHTML = rendered;
+            const cursor = document.createElement('span');
+            cursor.className = 'streaming-cursor';
+            streamingState.streamingElement.appendChild(cursor);
+
+            // تمييز الأكواد
+            streamingState.streamingElement.querySelectorAll('pre code').forEach(block => {
+                hljs.highlightElement(block);
+                addCodeHeader(block.parentElement);
+            });
+
+            smoothScrollToBottom();
+        }
+    }
 }
 
 function displayMessage(message) {
@@ -1894,6 +2314,7 @@ function regenerateMessage(button) {
 // Settings and data management
 function openSettings() {
     document.getElementById('settingsModal').classList.remove('hidden');
+    onOpenSettingsModal();
     loadSettingsUI();
 }
 
@@ -1906,11 +2327,16 @@ function loadSettingsUI() {
     document.getElementById('providerSelect').value = settings.provider;
 
     // Load temperature
-    document.getElementById('temperatureSlider').value = settings.temperature;
-    document.getElementById('temperatureValue').textContent = settings.temperature;
+document.getElementById('temperatureSlider').value = settings.temperature;
+document.getElementById('temperatureValue').textContent = settings.temperature;
 
-    // Load custom prompt
-    document.getElementById('customPromptInput').value = settings.customPrompt;
+// Load theme
+const themeSel = document.getElementById('themeSelect');
+if (themeSel) themeSel.value = settings.theme || 'blue';
+
+// Load custom prompt (قد لا يكون موجوداً في HTML)
+const cpi = document.getElementById('customPromptInput');
+if (cpi) cpi.value = settings.customPrompt || '';
 
     // Load API key retry strategy
     document.getElementById('apiKeyRetryStrategySelect').value = settings.apiKeyRetryStrategy;
@@ -1927,18 +2353,58 @@ function loadSettingsUI() {
     updateModelOptions();
 }
 
-function saveSettings() {
-    // Save basic settings
-    settings.provider = document.getElementById('providerSelect').value;
-    settings.model = document.getElementById('modelSelect').value;
-    settings.temperature = parseFloat(document.getElementById('temperatureSlider').value);
-    settings.customPrompt = document.getElementById('customPromptInput').value;
-    settings.apiKeyRetryStrategy = document.getElementById('apiKeyRetryStrategySelect').value;
-    settings.fontSize = parseInt(document.getElementById('fontSizeSlider').value, 10);
+// ✨✨✨ الدالة المفقودة التي تصلح زر الحفظ ✨✨✨
+async function saveSettings() {
+  settings.provider = document.getElementById('providerSelect').value;
+  settings.model = document.getElementById('modelSelect').value;
+  settings.temperature = parseFloat(document.getElementById('temperatureSlider').value);
+  // عنصر قد لا يكون موجودًا:
+  const cpi = document.getElementById('customPromptInput');
+  settings.customPrompt = cpi ? cpi.value : (settings.customPrompt || '');
+  settings.apiKeyRetryStrategy = document.getElementById('apiKeyRetryStrategySelect').value;
+  settings.fontSize = parseInt(document.getElementById('fontSizeSlider').value, 10);
 
-    saveData();
-    closeSettings();
-    showNotification('تم حفظ الإعدادات بنجاح', 'success');
+  // الثيم:
+  const themeSel = document.getElementById('themeSelect');
+  if (themeSel) {
+    settings.theme = themeSel.value;
+    setTheme(settings.theme); // طبّقه فورًا
+  }
+
+  await saveSettingsToDB();
+  closeSettings();
+}
+
+async function saveSettingsToDB() {
+    if (!currentUser) return;
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/settings`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(settings)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            // استخدم رسالة الخطأ من الخادم إذا كانت موجودة
+            throw new Error(errorData.message || `فشل الحفظ: ${response.statusText}`);
+        }
+
+        const savedSettings = await response.json();
+        settings = savedSettings;
+        console.log('Settings saved successfully to DB.');
+        showNotification('تم حفظ الإعدادات بنجاح', 'success'); // <-- انقل الإشعار إلى هنا
+
+    } catch (error) {
+        console.error('Error saving settings:', error);
+        showNotification(`خطأ: ${error.message}`, 'error');
+    }
 }
 
 // API Keys management
@@ -1962,12 +2428,12 @@ function renderGeminiApiKeys() {
         keyDiv.className = 'flex items-center space-x-3 space-x-reverse';
         keyDiv.innerHTML = `
             <div class="relative flex-1">
-                <input type="password" value="${apiKey.key}" 
+                <input type="password" value="${apiKey.key}"
                     onchange="updateGeminiApiKey(${index}, this.value)"
                     id="geminiApiKeyInput-${index}"
                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white text-base pl-10 backdrop-blur-sm"
                     placeholder="أدخل مفتاح Gemini API">
-                <button type="button" onclick="toggleGeminiApiKeyVisibility(${index})" 
+                <button type="button" onclick="toggleGeminiApiKeyVisibility(${index})"
                     class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
                     <i id="geminiApiKeyToggleIcon-${index}" class="fas fa-eye"></i>
                 </button>
@@ -1976,7 +2442,7 @@ function renderGeminiApiKeys() {
                 <span class="status-indicator ${apiKey.status === 'active' ? 'bg-green-500' : 'bg-red-500'} w-3 h-3 rounded-full"></span>
                 <span class="text-xs text-gray-500 dark:text-gray-400">${apiKey.status === 'active' ? 'نشط' : 'معطل'}</span>
             </div>
-            <button onclick="removeGeminiApiKey(${index})" 
+            <button onclick="removeGeminiApiKey(${index})"
                 class="p-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors">
                 <i class="fas fa-trash text-sm"></i>
             </button>
@@ -2037,12 +2503,12 @@ function renderOpenRouterApiKeys() {
         keyDiv.className = 'flex items-center space-x-3 space-x-reverse';
         keyDiv.innerHTML = `
             <div class="relative flex-1">
-                <input type="password" value="${apiKey.key}" 
+                <input type="password" value="${apiKey.key}"
                     onchange="updateOpenRouterApiKey(${index}, this.value)"
                     id="openrouterApiKeyInput-${index}"
                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/80 dark:bg-gray-700/80 text-gray-900 dark:text-white text-base pl-10 backdrop-blur-sm"
                     placeholder="أدخل مفتاح OpenRouter API">
-                <button type="button" onclick="toggleOpenRouterApiKeyVisibility(${index})" 
+                <button type="button" onclick="toggleOpenRouterApiKeyVisibility(${index})"
                     class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
                     <i id="openrouterApiKeyToggleIcon-${index}" class="fas fa-eye"></i>
                 </button>
@@ -2051,7 +2517,7 @@ function renderOpenRouterApiKeys() {
                 <span class="status-indicator ${apiKey.status === 'active' ? 'bg-green-500' : 'bg-red-500'} w-3 h-3 rounded-full"></span>
                 <span class="text-xs text-gray-500 dark:text-gray-400">${apiKey.status === 'active' ? 'نشط' : 'معطل'}</span>
             </div>
-            <button onclick="removeOpenRouterApiKey(${index})" 
+            <button onclick="removeOpenRouterApiKey(${index})"
                 class="p-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors">
                 <i class="fas fa-trash text-sm"></i>
             </button>
@@ -2101,31 +2567,52 @@ function closeSidebar() {
     document.getElementById('sidebar').classList.add('translate-x-full');
 }
 
+function setTheme(theme) {
+  const body = document.body;
+  body.classList.remove('theme-blue', 'theme-black', 'theme-light');
+  if (theme === 'light') {
+    body.classList.remove('dark');
+  } else {
+    body.classList.add('dark'); // لاستفادة dark: من Tailwind
+  }
+  body.classList.add(`theme-${theme}`);
+  localStorage.setItem('themeV2', theme);
+}
+
+function initializeTheme() {
+  const saved = (settings && settings.theme) || localStorage.getItem('themeV2') || 'blue';
+  setTheme(saved);
+  const sel = document.getElementById('themeSelect');
+  if (sel) sel.value = saved;
+}
+
 function toggleDarkMode() {
     const body = document.body;
-    const themeIcon = document.getElementById('themeIcon');
+    const themeIcon = document.getElementById('themeIcon'); // قد يكون غير موجود الآن
 
     body.classList.toggle('dark');
 
-    if (body.classList.contains('dark')) {
-        themeIcon.className = 'fas fa-sun text-lg';
-        localStorage.setItem('theme', 'dark');
-    } else {
-        themeIcon.className = 'fas fa-moon text-lg';
-        localStorage.setItem('theme', 'light');
+    const isDark = body.classList.contains('dark');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+
+    // تحمّل عدم وجود أيقونة في الرأس (لأننا نقلنا التحكم داخل منيو الحساب)
+    if (themeIcon) {
+        themeIcon.className = isDark ? 'fas fa-sun text-lg' : 'fas fa-moon text-lg';
     }
 }
 
 function initializeDarkMode() {
     const savedTheme = localStorage.getItem('theme');
-    const themeIcon = document.getElementById('themeIcon');
+    const themeIcon = document.getElementById('themeIcon'); // قد لا يوجد
 
-    if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    if (savedTheme === 'dark') {
         document.body.classList.add('dark');
-        themeIcon.className = 'fas fa-sun text-lg';
-    } else {
+        if (themeIcon) themeIcon.className = 'fas fa-sun text-lg';
+    } else if (savedTheme === 'light') {
         document.body.classList.remove('dark');
-        themeIcon.className = 'fas fa-moon text-lg';
+        if (themeIcon) themeIcon.className = 'fas fa-moon text-lg';
+    } else {
+        // الوضع الافتراضي: دع المتصفح يقرر، ولا تلمس الأيقونة إن لم تكن موجودة
     }
 }
 
@@ -2146,53 +2633,6 @@ function showNotification(message, type = 'info') {
     setTimeout(() => {
         notification.remove();
     }, 5000);
-}
-
-// Data persistence
-function saveData() {
-    try {
-        localStorage.setItem('zeusChats', JSON.stringify(chats));
-        localStorage.setItem('zeusSettings', JSON.stringify(settings));
-        localStorage.setItem('zeusCurrentChatId', currentChatId || '');
-    } catch (error) {
-        console.error('Error saving data:', error);
-        showNotification('خطأ في حفظ البيانات', 'error');
-    }
-}
-
-function loadData() {
-    try {
-        const savedChats = localStorage.getItem('zeusChats');
-        const savedSettings = localStorage.getItem('zeusSettings');
-        const savedCurrentChatId = localStorage.getItem('zeusCurrentChatId');
-
-        if (savedChats) {
-            chats = JSON.parse(savedChats);
-            // Ensure all chats have an 'order' property for drag-and-drop
-            Object.values(chats).forEach(chat => {
-                if (chat.order === undefined) {
-                    // Use updatedAt for backward compatibility, ensuring newest are on top
-                    chat.order = chat.updatedAt;
-                }
-            });
-        }
-
-        if (savedSettings) {
-            const loadedSettings = JSON.parse(savedSettings);
-            settings = { ...settings, ...loadedSettings };
-            // Apply loaded font size on startup
-            if (settings.fontSize) {
-                updateFontSize(settings.fontSize);
-            }
-        }
-
-        if (savedCurrentChatId && chats[savedCurrentChatId]) {
-            currentChatId = savedCurrentChatId;
-        }
-    } catch (error) {
-        console.error('Error loading data:', error);
-        showNotification('خطأ في تحميل البيانات', 'error');
-    }
 }
 
 // Legacy functions for backward compatibility (these may not be used with new file card system)
@@ -2387,3 +2827,259 @@ async function sendToGeminiStreaming(messages, attachments, apiKey, model) {
 
     appendToStreamingMessage('', true);
 }
+
+// ===============================================
+// نظام تسجيل الدخول والخروج
+// ===============================================
+
+
+async function checkUserStatus() {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+        console.log("No auth token found. User is logged out.");
+        currentUser = null;
+        settings = { ...defaultSettings };
+        updateUserDisplay();
+        displayChatHistory();
+        return;
+    }
+
+    try {
+        // ✨ الخطوة 1: التحقق من هوية المستخدم
+        const userResponse = await fetch(`${API_BASE_URL}/api/user`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!userResponse.ok) throw new Error('Invalid or expired token');
+        const userData = await userResponse.json();
+
+        // ✨ الخطوة 2: تحديث الواجهة فورًا بالمعلومات الأساسية للمستخدم
+        currentUser = userData.user;
+updateUserDisplay();
+renderAccountInfo(); // 👈 تحديث تبويب "الحساب" // <--- هذا هو السحر! سيُظهر الصورة والاسم فورًا!
+
+        // ✨ الخطوة 3: الآن، قم بجلب باقي البيانات (المحادثات والإعدادات)
+        const dataResponse = await fetch(`${API_BASE_URL}/api/data`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!dataResponse.ok) {
+            // حتى لو فشل هذا الطلب، سيبقى المستخدم مسجلاً دخوله
+            showNotification('تم تسجيل الدخول، لكن فشل جلب البيانات.', 'error');
+            throw new Error('Failed to fetch user data');
+        }
+        const data = await dataResponse.json();
+
+        // ✨ الخطوة 4: دمج البيانات وتحديث باقي الواجهة
+        chats = data.chats.reduce((acc, chat) => { acc[chat._id] = chat; return acc; }, {});
+        settings = { ...defaultSettings, ...data.settings };
+
+        // تحديث واجهة الإعدادات والمحادثات بالترتيب الصحيح
+        updateCustomProviders();
+        updateProviderSelect();
+        displayChatHistory();
+        loadSettingsUI();
+
+        if (Object.keys(chats).length > 0) {
+            currentChatId = Object.values(chats).sort((a, b) => (b.order || 0) - (a.order || 0))[0]._id;
+            switchToChat(currentChatId);
+        }
+
+    } catch (error) {
+        console.error("Check user status process failed:", error.message);
+        // إذا فشلت أي خطوة بعد تعيين المستخدم، لا تسجل خروجه بالكامل
+        // هذا يضمن بقاء الصورة والاسم ظاهرين حتى لو فشل جلب البيانات
+        if (!currentUser) {
+             localStorage.removeItem('authToken');
+             chats = {};
+             settings = { ...defaultSettings };
+             updateUserDisplay();
+             displayChatHistory();
+        }
+    }
+}
+
+function updateUserDisplay() {
+    renderUserMenu(currentUser);
+}
+
+/**
+ * تبدأ عملية تسجيل الدخول.
+ */
+function loginWithGoogle() {
+    showNotification('جارٍ توجيهك لتسجيل الدخول...', 'info');
+    window.location.href = 'https://chatzeus-production.up.railway.app/auth/google'; // <--- هذا هو السطر الصحيح
+}
+
+/**
+ * تبدأ عملية تسجيل الخروج.
+ */
+function logout() {
+    // حذف التوكن من التخزين المحلي
+    localStorage.removeItem('authToken');
+
+    // إعادة تعيين حالة المستخدم في الواجهة
+    currentUser = null;
+    
+    // ✨ إعادة تعيين البيانات المحلية بالكامل
+    chats = {};
+    currentChatId = null;
+    // يمكنك إعادة تعيين الإعدادات إلى الافتراضية هنا إذا أردت
+    
+    // تحديث الواجهة لعرض زر تسجيل الدخول
+    updateUserDisplay();
+    
+    // عرض شاشة الترحيب وإخفاء المحادثات
+    document.getElementById('welcomeScreen').classList.remove('hidden');
+    document.getElementById('messagesContainer').classList.add('hidden');
+    
+    // تحديث قائمة المحادثات (ستكون فارغة)
+    displayChatHistory();
+
+    showNotification('تم تسجيل الخروج بنجاح', 'success');
+}
+
+function renderAccountInfo() {
+  const n = document.getElementById('accName');
+  const e = document.getElementById('accEmail');
+  const c = document.getElementById('accCreatedAt');
+
+  if (!n || !e || !c) return;
+
+  if (!currentUser) {
+    n.textContent = 'غير مسجّل';
+    e.textContent = '—';
+    c.textContent = '—';
+    return;
+  }
+  n.textContent = currentUser.name || '—';
+  e.textContent = currentUser.email || '—';
+  const d = currentUser.createdAt ? new Date(currentUser.createdAt) : null;
+  c.textContent = d ? d.toLocaleString() : '—';
+}
+
+// ====================== واجهة حساب المستخدم (مثل GPT) ======================
+function renderUserMenu(user) {
+  const root = document.getElementById('user-info-container');
+  if (!root) return;
+
+  // إن لم تكن مسجلاً: زر تسجيل الدخول (نفس سلوكك الحالي)
+  if (!user) {
+    root.innerHTML = `
+      <button onclick="loginWithGoogle()"
+              class="flex items-center space-x-2 space-x-reverse bg-white hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-lg transition-colors duration-200 transform hover:scale-105 text-sm font-semibold shadow-md">
+        <svg class="w-5 h-5" viewBox="0 0 18 18">
+          <g fill-rule="evenodd">
+            <path d="M17.64 9.2045c0-.6381-.0573-1.2518-.1636-1.8409H9.1818v3.4818h4.7909c-.2045 1.125-.8227 2.0782-1.7773 2.7218v2.2591h2.9091c1.7045-1.5682 2.6864-3.8727 2.6864-6.6218z" fill="#4285F4"></path>
+            <path d="M9.1818 18c2.4455 0 4.4955-.8127 5.9955-2.1818l-2.9091-2.2591c-.8127.5455-1.8545.8727-3.0864.8727-2.3364 0-4.3182-1.5682-5.0364-3.6545H1.2727v2.3364C2.9636 16.2 5.7818 18 9.1818 18z" fill="#34A853"></path>
+            <path d="M4.1455 10.8818c-.1136-.3273-.1818-.6818-.1818-1.0455s.0682-.7182.1818-1.0455V6.4545H1.2727C.9455 7.1455.7273 7.9091.7273 8.7273c0 .8182.2182 1.5818.5455 2.2727l2.8727-2.1182z" fill="#FBBC05"></path>
+            <path d="M9.1818 3.6545c1.3273 0 2.5182.4545 3.4545 1.3636l2.5818-2.5818C13.6773.9818 11.6273 0 9.1818 0 5.7818 0 2.9636 1.8 1.2727 4.1182l2.8727 2.3364c.7182-2.0864 2.7-3.6545 5.0364-3.6545z" fill="#EA4335"></path>
+          </g>
+        </svg>
+        <span>تسجيل الدخول بـ Google</span>
+      </button>
+    `;
+    return;
+  }
+
+  // عند تسجيل الدخول: زر أفاتار + قائمة مثل GPT
+  const name = user.name || 'حسابي';
+  const email = user.email || '';
+  const picture = user.picture || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(name);
+
+  root.innerHTML = `
+    <div class="relative" id="userMenu">
+      <button id="userMenuBtn"
+              class="user-menu-trigger flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-gray-800/60 transition-colors">
+        <img src="${picture}" alt="avatar" class="w-8 h-8 rounded-full object-cover" />
+        <div class="hidden md:flex flex-col items-start leading-tight text-left">
+          <span class="text-sm text-white font-semibold truncate max-w-[160px]">${name}</span>
+          <span class="text-xs text-gray-400 truncate max-w-[160px]">${email}</span>
+        </div>
+        <i class="fas fa-chevron-down text-gray-400 text-sm md:ml-1"></i>
+      </button>
+
+      <div id="userMenuPanel"
+           class="user-menu-panel absolute right-0 mt-2 w-64 rounded-xl overflow-hidden shadow-xl hidden">
+        <div class="px-4 py-3 bg-gray-900/90 backdrop-blur">
+          <div class="flex items-center gap-3">
+            <img src="${picture}" alt="avatar" class="w-10 h-10 rounded-full object-cover" />
+            <div class="min-w-0">
+              <div class="text-white font-semibold truncate">${name}</div>
+              <div class="text-gray-400 text-xs truncate">${email}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-gray-950/90 backdrop-blur divide-y divide-white/5">
+          <button class="menu-item w-full text-left px-4 py-3 hover:bg-white/5" onclick="openSettings()">
+            <i class="fas fa-cog mr-2"></i> الإعدادات
+          </button>
+          <button class="menu-item w-full text-left px-4 py-3 hover:bg-white/5" onclick="toggleDarkMode()">
+            <i class="fas fa-moon mr-2"></i> تبديل المظهر
+          </button>
+          <button class="menu-item w-full text-left px-4 py-3 hover:bg-white/5 text-red-400" onclick="logout()">
+            <i class="fas fa-sign-out-alt mr-2"></i> تسجيل الخروج
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // تفعيل/إغلاق القائمة
+  const btn = document.getElementById('userMenuBtn');
+  const panel = document.getElementById('userMenuPanel');
+
+  function closePanel(e) {
+    if (!panel || !btn) return;
+    if (e && (btn.contains(e.target) || panel.contains(e.target))) return;
+    panel.classList.add('hidden');
+    document.removeEventListener('click', closePanel);
+  }
+
+  btn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    panel?.classList.toggle('hidden');
+    if (!panel?.classList.contains('hidden')) {
+      setTimeout(() => document.addEventListener('click', closePanel), 0);
+    } else {
+      document.removeEventListener('click', closePanel);
+    }
+  });
+}
+
+// ===== تبويبات نافذة الإعدادات =====
+function activateSettingsTab(tab) {
+  document.querySelectorAll('.settings-tab').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === tab);
+  });
+  document.querySelectorAll('#settingsPanels .settings-panel').forEach(p => {
+    p.classList.toggle('hidden', p.dataset.tab !== tab);
+  });
+}
+
+// مستمع عام للنقر على تبويبات الإعدادات
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.settings-tab');
+  if (!btn) return;
+  activateSettingsTab(btn.dataset.tab);
+});
+
+// (اختياري) استدعاء عند فتح النافذة لأول مرة
+function onOpenSettingsModal() {
+  // اجعل تبويب "الحساب" هو الافتراضي
+  activateSettingsTab('account');
+}
+// --- Marked.js configuration ---
+// Ensure marked.js is loaded before this script if you use it for Markdown parsing.
+// You might need to include it in your index.html:
+// <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+// Or handle its loading dynamically.
+
+// --- Highlight.js configuration ---
+// Ensure highlight.js is loaded and CSS is included for code highlighting.
+// You might need to include it in your index.html:
+// <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css">
+// <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+// <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/go.min.js"></script> <!-- Example language -->
+// document.addEventListener('DOMContentLoaded', (event) => {
+//   hljs.highlightAll();
+// });
