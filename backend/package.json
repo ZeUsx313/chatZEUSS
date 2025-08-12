@@ -1,17 +1,25 @@
 {
-  "name": "nodejs",
+  "name": "chatzeus-backend",
   "version": "1.0.0",
-  "description": "",
+  "description": "Backend for ChatZeus",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
-    "@types/node": "^22.13.11",
-    "dotenv": "^17.2.1"
+  "@google/generative-ai": "^0.7.1",
+  "cors": "^2.8.5",
+  "dotenv": "^16.4.5",
+  "express": "^4.19.2",
+  "google-auth-library": "^9.11.0",
+  "jsonwebtoken": "^9.0.2",
+  "mongoose": "^8.4.1",
+  "multer": "^1.4.5-lts.1",
+  "uuid": "^9.0.1",
+  "passport": "^0.7.0",
+  "passport-google-oauth20": "^2.0.0"
+},
+  "engines": {
+    "node": "18.x"
   }
 }
